@@ -25,7 +25,7 @@ HeatMap::HeatMap(QWidget *parent)
     setAttribute(Qt::WA_OpaquePaintEvent);
 }
 
-void HeatMap::onSerialDataReceived(const QByteArray& array)
+void HeatMap::onSerialDataReceived(const QByteArray& packet)
 {   
     QVector<int16_t> data;
     data.reserve(SELF_CAP_PACKETSIZE);

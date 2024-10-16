@@ -118,12 +118,12 @@ BarChart::BarChart(QWidget *parent)
     chartView->move(240, 40);
 }
 
-void BarChart::onSerialDataReceived(const QByteArray& array)
+void BarChart::onSerialDataReceived(const QByteArray& packet)
 {
     QVector<int16_t> data;
     int i = 2;
     assert(packet[0] == X_HEADER || packet[0] == Y_HEADER);
-    assert((packet.size() - 2) % 2 == 0)
+    assert((packet.size() - 2) % 2 == 0);
 
     for(; i < packet.size(); i += 2)
     {
