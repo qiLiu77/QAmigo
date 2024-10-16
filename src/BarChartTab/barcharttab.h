@@ -45,7 +45,8 @@ private:
     int axisCheckedIndex = 0, dataCheckedIndex = 0;
     QChart* chart;
     QChartView* chartView;
-    QBarSeries* series[2][3];
+    QLineSeries* lineSeries[2];
+    QBarSeries* barSeries[2][3];
     QValueAxis* positive, * real, * bin[2];
 
     QVector<int16_t> avg[2];

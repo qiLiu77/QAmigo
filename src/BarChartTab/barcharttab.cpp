@@ -43,14 +43,22 @@ BarChart::BarChart(QWidget *parent)
     bin[Y]->setTickInterval(4);
     bin[Y]->setLabelFormat("%d");
 
-    auto arr = reinterpret_cast<QBarSeries**>(series);
-    for(int i = 0; i < std::size(series) * std::size(*series); i++)
+    //generate barSeries for all combinations
+    auto arr = reinterpret_cast<QBarSeries**>(barSeries);
+    for(int i = 0; i < std::size(barSeries) * std::size(*barSeries); i++)
     {
         arr[i] = new QBarSeries(this);
         auto set = new QBarSet("数据");
         arr[i]->append(set);
     }
 
+    //generate lineSeries for base data
+    for(int i = 0; i < std::size(lineSeries); i++)
+    {
+        lineSeries[i] = new QLineSeries(this);
+    }
+
+    //generate buttons
     auto generateButtonSeries = [this](const QList<QString>& labels, QRadioButton* array[], const QPoint& topLeft = {})
     {
         auto group = new QButtonGroup(this);
@@ -69,6 +77,7 @@ BarChart::BarChart(QWidget *parent)
     generateButtonSeries({"X", "Y"}, axisSwitch, {20, 30});
     generateButtonSeries({"Data", "I", "Q"}, dataSwitch, {100, 30});
 
+    //connect signal for button press
     for(int i = 0; i < std::size(axisSwitch); i++)
     {
         connect(axisSwitch[i], &QRadioButton::clicked, [this, i](bool checked)
@@ -78,7 +87,7 @@ BarChart::BarChart(QWidget *parent)
                 return;
             }
 
-            chart->removeSeries(series[axisCheckedIndex][dataCheckedIndex]);
+            chart->removeSeries(barSeries[axisCheckedIndex][dataCheckedIndex]);
             axisCheckedIndex = i;
             reattachAxis(axisCheckedIndex, dataCheckedIndex);
         });
@@ -92,7 +101,7 @@ BarChart::BarChart(QWidget *parent)
                 return;
             }
 
-            chart->removeSeries(series[axisCheckedIndex][dataCheckedIndex]);
+            chart->removeSeries(barSeries[axisCheckedIndex][dataCheckedIndex]);
             dataCheckedIndex = i;
             reattachAxis(axisCheckedIndex, dataCheckedIndex);
         });
@@ -100,7 +109,7 @@ BarChart::BarChart(QWidget *parent)
 
     chart = new QChart();
 
-    for(const auto& e1 : series)
+    for(const auto& e1 : barSeries)
     {
         for(const auto& e2 : e1)
         {
@@ -128,7 +137,7 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
     for(; i < packet.size(); i += 2)
     {
         auto high = packet[i + 1], low = packet[i];
-        data.push_back(high << 8 | low);
+        data.push_back(high << 8 | (uint8_t)low);
     }
 
     switch(auto u = packet.at(0), v = packet.at(1); v)
@@ -141,7 +150,7 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
                           dataMap = QMap<QChar, int>{{DATA_SUBHEADER, D}, {I_SUBHEADER, I}, {Q_SUBHEADER, Q}};
 
         const int idx = data[0];
-        auto series = this->series[u = axisMap[u]][v = dataMap[v]];
+        auto series = this->barSeries[u = axisMap[u]][v = dataMap[v]];
 
         //get and remove old set
         auto set = series->barSets()[0];
@@ -168,9 +177,10 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
     }
     case BASE_SUBHEADER:
     {
+#if false
         auto& base = this->base[u == X_HEADER ? X : Y];
         auto& avg = this->avg[u == X_HEADER ? X : Y];
-        base.push_back(std::move(data));
+        base.emplaceBack(data);
         if(base.length() > NUM_RESERVED)
         {
             base.pop_front();
@@ -184,6 +194,16 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
             }
             avg[i] = sum / base.size();
         }
+        avg = base.back();
+#endif
+
+        // temporary measure for fixed base;
+        for(int i = 0; i < data.size(); i++)
+        {
+            lineSeries[X]->append(i, data[i]);
+        }
+        reattachAxis(axisCheckedIndex, dataCheckedIndex);
+
         break;
     }
     default:
@@ -205,11 +225,15 @@ void BarChart::onRefresh()
 
 void BarChart::reattachAxis(int i, int j)
 {
-    chart->addSeries(series[i][j]);
+    chart->addSeries(barSeries[i][j]);
+    chart->removeSeries(lineSeries[X]);
+    chart->addSeries(lineSeries[X]);
     positive->setVisible(j == 0);
     real->setVisible(j != 0);
     bin[X]->setVisible(i == X);
     bin[Y]->setVisible(i == Y);
-    series[i][j]->attachAxis(bin[i]);
-    series[i][j]->attachAxis(j == 0 ? positive : real);
+    barSeries[i][j]->attachAxis(bin[i]);
+    barSeries[i][j]->attachAxis(j == 0 ? positive : real);
+    lineSeries[X]->attachAxis(bin[i]);
+    lineSeries[X]->attachAxis(j == 0 ? positive : real);
 }
