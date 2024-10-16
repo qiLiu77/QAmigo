@@ -42,6 +42,7 @@ private:
     void reattachAxis(int i, int j);
 
     QRadioButton* axisSwitch[2], * dataSwitch[3];
+    QLabel* maxTextEdit;
     int axisCheckedIndex = 0, dataCheckedIndex = 0;
     QChart* chart;
     QChartView* chartView;

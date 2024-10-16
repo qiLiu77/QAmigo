@@ -22,6 +22,10 @@ BarChart::BarChart(QWidget *parent)
 {
     avg[X] = QVector<int16_t>(X_BIN_CNT, 0);
     avg[Y] = QVector<int16_t>(Y_BIN_CNT, 0);
+    maxTextEdit = new QLabel(this);
+    maxTextEdit->resize(200, 40);
+    maxTextEdit->move(20, 140);
+    maxTextEdit->setText("Waiting");
 
     positive = new QValueAxis();
     positive->setRange(0, 6000);
@@ -56,6 +60,7 @@ BarChart::BarChart(QWidget *parent)
     for(int i = 0; i < std::size(lineSeries); i++)
     {
         lineSeries[i] = new QLineSeries(this);
+        lineSeries[i]->setName("基准");
     }
 
     //generate buttons
@@ -161,6 +166,7 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
 
         //prepare new set
         set = new QBarSet("数据");
+        int16_t max = 0, index = 0;
         for(int i = 0; i < idx; i++)
         {
             *set << 0;
@@ -168,14 +174,20 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
         for(int i = 1; i < data.size(); i++)
         {
             *set << data[i];
+            if(data[i] > max)
+            {
+                max = data[i];
+                index = idx + i;
+            }
         }
         for(int i = idx + data.size() - 1; i < static_cast<int16_t>(packet[0] == X_HEADER ? X_BIN_CNT : Y_BIN_CNT); i++)
         {
             *set << 0;
         }
+
+        //record max value and append set to series
+        maxTextEdit->setText(QStringLiteral("max data is %1 at coil %2").arg(max).arg(index));
         series->append(set);
-        // series->attachAxis(bin[u]);
-        // series->attachAxis(v == 0 ? positive : real);
         break;
     }
     case BASE_SUBHEADER:
