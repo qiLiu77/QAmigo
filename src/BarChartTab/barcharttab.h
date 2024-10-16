@@ -1,0 +1,64 @@
+#ifndef BARCHARTTAB_H
+#define BARCHARTTAB_H
+
+#include <QOpenGLWidget>
+#include <QRadioButton>
+#include <QtCharts>
+#include <QVector>
+#include <QMap>
+#include <iostream>
+#include <chrono>
+
+namespace cr = std::chrono;
+
+class BarChart : public QWidget
+{
+    Q_OBJECT
+    enum class State
+    {
+        Waiting,
+        Error,
+        X,
+        Y,
+        XBase,
+        YBase,
+    };
+    enum Axis
+    {
+        X,
+        Y
+    };
+    enum Data
+    {
+        D,
+        I,
+        Q
+    };
+
+public:
+    explicit BarChart(QWidget *parent = nullptr);
+
+private:
+    void reattachAxis(int i, int j);
+
+    QRadioButton* axisSwitch[2], * dataSwitch[3];
+    int axisCheckedIndex = 0, dataCheckedIndex = 0;
+    QChart* chart;
+    QChartView* chartView;
+    QBarSeries* series[2][3];
+    QValueAxis* positive, * real, * bin[2];
+
+    QVector<int16_t> avg[2];
+    QVector<QPair<State, QVector<int16_t>>> valid;
+    QQueue<QVector<int16_t>> base[2];
+    QString prev;
+
+signals:
+
+public slots:
+    void onSerialDataReceived(const QByteArray& array);
+    void setShouldRefresh(int index);
+    void onRefresh();
+};
+
+#endif // BARCHARTTAB_H
