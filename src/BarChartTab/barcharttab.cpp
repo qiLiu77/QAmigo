@@ -132,7 +132,10 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
     QVector<int16_t> data;
     int i = 2;
     assert(packet[0] == X_HEADER || packet[0] == Y_HEADER);
-    assert((packet.size() - 2) % 2 == 0);
+    if((packet.size() - 2) % 2 != 0)
+    {
+        goto error;
+    }
 
     for(; i < packet.size(); i += 2)
     {
@@ -166,7 +169,7 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
         {
             *set << data[i];
         }
-        for(int i = idx + 7; i < static_cast<int16_t>(packet[0] == X_HEADER ? X_BIN_CNT : Y_BIN_CNT); i++)
+        for(int i = idx + data.size() - 1; i < static_cast<int16_t>(packet[0] == X_HEADER ? X_BIN_CNT : Y_BIN_CNT); i++)
         {
             *set << 0;
         }
@@ -207,8 +210,12 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
         break;
     }
     default:
-        qDebug() << "Error packet " << packet << Qt::endl;
+        goto error;
     }
+
+    return;
+error:
+    qDebug() << "Error packet " << packet << Qt::endl;
 }
 
 void BarChart::setShouldRefresh(int index)
