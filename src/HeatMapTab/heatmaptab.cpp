@@ -3,8 +3,7 @@
 #define WIDTH 20
 #define HEIGHT 12
 #define LINES 52
-#define COLUMNS 39
-#define DATABITS 4
+#define COLUMNS 3
 #define SELF_CAP_PACKETSIZE (LINES + COLUMNS)
 #define MUT_CAP_PACKETSIZE 3
 #define SELF_CAP_HEADER 'S'
@@ -28,43 +27,26 @@ HeatMap::HeatMap(QWidget *parent)
 
 void HeatMap::onSerialDataReceived(const QByteArray& array)
 {   
-    QString str = prev + array;
-    // should be 0
-    int begin = str.indexOf(TAIL, 0) + 1, end = 0;
+    QVector<int16_t> data;
+    data.reserve(SELF_CAP_PACKETSIZE);
+    assert(packet[0] == SELF_CAP_HEADER || packet[0] == MUT_CAP_HEADER);
 
-    while((end = str.indexOf(TAIL, begin)) != -1)
+    auto state = packet[0] == SELF_CAP_HEADER ? State::SelfCapacity : State::MutualCapacity;
+    if((state == State::SelfCapacity && packet.size() - 2 != SELF_CAP_PACKETSIZE * 2) ||
+       (state == State::MutualCapacity && (data.size() - 2) % (MUT_CAP_PACKETSIZE * 2)  != 0))
     {
-        QString packet = str.sliced(begin, end - begin + 1);
-        QVector<int16_t> data(SELF_CAP_PACKETSIZE);
-        int i = 1;
-
-        assert(packet[0] == SELF_CAP_HEADER || packet[0] == MUT_CAP_HEADER);
-        auto state = packet[0] == SELF_CAP_HEADER ? State::SelfCapacity : State::MutualCapacity;
-        if((state == State::SelfCapacity && packet.size() - 2 != SELF_CAP_PACKETSIZE * DATABITS) ||
-            (state == State::MutualCapacity && (data.size() - 2) % (MUT_CAP_PACKETSIZE * DATABITS)  != 0))
-        {
-            valid.push_back({State::Error, {}});
-            qDebug() << "Error packet: " << packet << Qt::endl;
-            goto next;
-        }
-
-        //exclude start and end flag
-
-        for(; i < packet.size() - 1; i += 4)
-        {
-            int16_t d = packet.sliced(i, 4).toInt();
-            data[i / 4] = d;
-        }
-
-        valid.push_back({state, data});
-        assert(packet.size() - i == 1 && packet.last(1) == "E");
-
-        next:
-        begin = end + 1;
+        valid.push_back({State::Error, {}});
+        qDebug() << "Error packet: " << packet << Qt::endl;
+        return;
     }
 
-    prev = str.sliced(begin);
-    return;
+    for(int i = 1; i < packet.size(); i += 2)
+    {
+        auto high = packet[i + 1], low = packet[i];
+        data.push_back(high << 8 | low);
+    }
+
+    valid.push_back({state, data});
 }
 
 void HeatMap::setShouldRefresh(int index)

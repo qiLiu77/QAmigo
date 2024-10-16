@@ -30,6 +30,9 @@ QByteArray unstuffData(const QByteArray& stuffedData)
             }
             switch(stuffedData[++i])
             {
+            case ESCAPE_LF:
+                result.append(LF);
+                break;
             case ESCAPE_BEGIN:
                 result.append(BEGIN);
                 break;

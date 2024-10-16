@@ -120,89 +120,75 @@ BarChart::BarChart(QWidget *parent)
 
 void BarChart::onSerialDataReceived(const QByteArray& array)
 {
-    QString str = prev + array;
-    // should be 0
-    int begin = 0, end = 0;
+    QVector<int16_t> data;
+    int i = 2;
+    assert(packet[0] == X_HEADER || packet[0] == Y_HEADER);
+    assert((packet.size() - 2) % 2 == 0)
 
-    while((end = str.indexOf(TAIL, begin, Qt::CaseInsensitive)) != -1)
+    for(; i < packet.size(); i += 2)
     {
-        QString packet = str.sliced(begin + 1, end - begin);
-        QVector<int16_t> data;
-        int i = 2;
-        assert(packet[0] == X_HEADER || packet[0] == Y_HEADER);
-
-        //exclude start and end flag
-        //TODO: -1 to be removed
-        for(; i < packet.size() - 1; i += 4)
-        {
-            int16_t d = packet.sliced(i, 4).toInt();
-            data.push_back(d);
-        }
-
-        switch(auto u = packet.at(0).unicode(), v = packet.at(1).unicode(); v)
-        {
-        case DATA_SUBHEADER:
-        case I_SUBHEADER:
-        case Q_SUBHEADER:
-        {
-            static const auto axisMap = QMap<QChar, int>{{X_HEADER, X}, {Y_HEADER, Y}},
-                              dataMap = QMap<QChar, int>{{DATA_SUBHEADER, D}, {I_SUBHEADER, I}, {Q_SUBHEADER, Q}};
-
-            const int idx = data[0];
-            auto series = this->series[u = axisMap[u]][v = dataMap[v]];
-
-            //get and remove old set
-            auto set = series->barSets()[0];
-            assert(series->remove(set));
-
-            //prepare new set
-            set = new QBarSet("数据");
-            for(int i = 0; i < idx; i++)
-            {
-                *set << 0;
-            }
-            for(int i = 1; i < data.size(); i++)
-            {
-                *set << data[i];
-            }
-            for(int i = idx + 7; i < static_cast<int16_t>(packet[0] == X_HEADER ? X_BIN_CNT : Y_BIN_CNT); i++)
-            {
-                *set << 0;
-            }
-            series->append(set);
-            // series->attachAxis(bin[u]);
-            // series->attachAxis(v == 0 ? positive : real);
-            break;
-        }
-        case BASE_SUBHEADER:
-        {
-            auto& base = this->base[u == X_HEADER ? X : Y];
-            auto& avg = this->avg[u == X_HEADER ? X : Y];
-            base.push_back(std::move(data));
-            if(base.length() > NUM_RESERVED)
-            {
-                base.pop_front();
-            }
-            for(int i = 0; i < base[0].size(); i++)
-            {
-                uint16_t sum = 0;
-                for(int j = 0; j < base.size(); j++)
-                {
-                    sum += base[j][i];
-                }
-                avg[i] = sum / base.size();
-            }
-            break;
-        }
-        default:
-            qDebug() << "Error packet " << packet << Qt::endl;
-        }
-
-        begin = end + 1;
+        auto high = packet[i + 1], low = packet[i];
+        data.push_back(high << 8 | low);
     }
 
-    prev = str.sliced(begin);
-    return;
+    switch(auto u = packet.at(0), v = packet.at(1); v)
+    {
+    case DATA_SUBHEADER:
+    case I_SUBHEADER:
+    case Q_SUBHEADER:
+    {
+        static const auto axisMap = QMap<QChar, int>{{X_HEADER, X}, {Y_HEADER, Y}},
+                          dataMap = QMap<QChar, int>{{DATA_SUBHEADER, D}, {I_SUBHEADER, I}, {Q_SUBHEADER, Q}};
+
+        const int idx = data[0];
+        auto series = this->series[u = axisMap[u]][v = dataMap[v]];
+
+        //get and remove old set
+        auto set = series->barSets()[0];
+        assert(series->remove(set));
+
+        //prepare new set
+        set = new QBarSet("数据");
+        for(int i = 0; i < idx; i++)
+        {
+            *set << 0;
+        }
+        for(int i = 1; i < data.size(); i++)
+        {
+            *set << data[i];
+        }
+        for(int i = idx + 7; i < static_cast<int16_t>(packet[0] == X_HEADER ? X_BIN_CNT : Y_BIN_CNT); i++)
+        {
+            *set << 0;
+        }
+        series->append(set);
+        // series->attachAxis(bin[u]);
+        // series->attachAxis(v == 0 ? positive : real);
+        break;
+    }
+    case BASE_SUBHEADER:
+    {
+        auto& base = this->base[u == X_HEADER ? X : Y];
+        auto& avg = this->avg[u == X_HEADER ? X : Y];
+        base.push_back(std::move(data));
+        if(base.length() > NUM_RESERVED)
+        {
+            base.pop_front();
+        }
+        for(int i = 0; i < base[0].size(); i++)
+        {
+            uint16_t sum = 0;
+            for(int j = 0; j < base.size(); j++)
+            {
+                sum += base[j][i];
+            }
+            avg[i] = sum / base.size();
+        }
+        break;
+    }
+    default:
+        qDebug() << "Error packet " << packet << Qt::endl;
+    }
 }
 
 void BarChart::setShouldRefresh(int index)

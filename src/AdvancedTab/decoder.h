@@ -10,12 +10,14 @@
 #include "protocal.h"
 #include "vartype.h"
 
-#define BEGIN 0x7E  // 帧的定界符
+#define LF 0x0A
+#define BEGIN 0x7E
 #define END 0x7F
-#define ESCAPE 0x7D // 转义字符
-#define ESCAPE_BEGIN 0x5E // 用于替代0x7E的转义序列
+#define ESCAPE 0x7D
+#define ESCAPE_LF 0x5A
+#define ESCAPE_BEGIN 0x5E
 #define ESCAPE_END 0x5F
-#define ESCAPE_ESCAPE 0x5D // 用于替代0x7D的转义序列
+#define ESCAPE_ESCAPE 0x5D
 
 class Decoder : public QObject
 {
