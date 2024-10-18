@@ -3,7 +3,7 @@
 #define WIDTH 20
 #define HEIGHT 12
 #define LINES 52
-#define COLUMNS 3
+#define COLUMNS 38
 #define SELF_CAP_PACKETSIZE (LINES + COLUMNS)
 #define MUT_CAP_PACKETSIZE 3
 #define SELF_CAP_HEADER 'S'
@@ -19,8 +19,7 @@ HeatMap::HeatMap(QWidget *parent)
 {
     stateTextEdit = new QTextEdit(this);
     stateTextEdit->setReadOnly(true);
-    stateTextEdit->move(20, 8);
-    stateTextEdit->resize(200, 600);
+    stateTextEdit->resize(200, LINES * HEIGHT);
 
     setAttribute(Qt::WA_OpaquePaintEvent);
 }
@@ -67,9 +66,10 @@ void HeatMap::onRefresh()
 
 void HeatMap::paintEvent(QPaintEvent *)
 {
-    static const auto size = this->size();
-    static const int top = size.height() / 2 - LINES / 2 * HEIGHT;
-    static const int left = 240;
+    static const auto [originalWidth, originalHeight] = size();
+    const double widthScaler = static_cast<double>(originalWidth) / width(),
+                 heightScaler = static_cast<double>(originalHeight) / height();
+    static const int left = 240, top = 60;
     static const auto calcHue = [](int16_t data)
     {
         if(data < -100)
@@ -86,16 +86,18 @@ void HeatMap::paintEvent(QPaintEvent *)
         }
     };
 
+    stateTextEdit->move(20, top);
     QPainter painter(this);
 
     // clear the background manually, and draw the table
     if(shouldClearScreen)
     {
-        painter.eraseRect(0, 0, size.width(), size.height());
+        painter.eraseRect(0, 0, width(), height());
     }
+    painter.setWindow(0, 0, WIDTH * COLUMNS, LINES * HEIGHT);
+    painter.setViewport(left * widthScaler, top * heightScaler, WIDTH * COLUMNS * widthScaler, LINES * HEIGHT * heightScaler);
 
     static State oldDataState = State::Error;
-
     while(true)
     {
         if(valid.empty())
@@ -132,13 +134,13 @@ void HeatMap::paintEvent(QPaintEvent *)
         if(state == State::SelfCapacity || shouldClearScreen)
         {
             painter.setBrush(QBrush(QColor::fromHsv(60, 255, 255)));
-            painter.drawRect(left, top, COLUMNS * WIDTH, LINES * HEIGHT);
+            painter.drawRect(0, 0, COLUMNS * WIDTH, LINES * HEIGHT);
             for(int j = 0; j < LINES; j++)
             {
                 for(int i = LINES; i < COLUMNS + LINES; i++)
                 {
                     int16_t d = std::min(data[i], data[j]);
-                    auto topLeft = QPoint(left + WIDTH * (i - LINES), top + HEIGHT * (j));
+                    auto topLeft = QPoint(WIDTH * (i - LINES), HEIGHT * (j));
                     doPaint(&painter, calcHue(d), d, topLeft, CellSize);
                 }
             }
@@ -148,7 +150,7 @@ void HeatMap::paintEvent(QPaintEvent *)
             for(int i = 0; i < data.size(); i += 3)
             {
                 int16_t x = data[i], y = data[i + 1], d = data[i + 2];
-                auto topLeft = QPoint(left + WIDTH * x, top + HEIGHT * y);
+                auto topLeft = QPoint(WIDTH * x, HEIGHT * y);
                 doPaint(&painter, calcHue(d), d, topLeft, CellSize);
             }
         }
@@ -160,11 +162,17 @@ void HeatMap::paintEvent(QPaintEvent *)
     shouldClearScreen = false;
 }
 
+void HeatMap::resizeEvent(QResizeEvent* event)
+{
+    setShouldRefresh(3);
+    update();
+}
+
 void HeatMap::doPaint(QPainter* painter, uint8_t hue, int16_t data, const QPoint& topLeft, const QSize& size)
 {
     auto rect = QRect(topLeft, size);
 
-    static QFont font = QFont("Arial", 7);
+    static const QFont font = QFont("Arial", 7);
 
     if(hue != 60)
     {

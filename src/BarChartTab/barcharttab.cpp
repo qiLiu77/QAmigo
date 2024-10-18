@@ -13,7 +13,6 @@
 #define I_SUBHEADER 'i'
 #define Q_SUBHEADER 'q'
 #define BASE_SUBHEADER 'b'
-#define TAIL 'E'
 #define NUM_RESERVED 10
 #define BASE_DIFF_THRESH 300
 
