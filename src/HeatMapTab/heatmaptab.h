@@ -1,13 +1,17 @@
 #ifndef GRAPHTAB_H
 #define GRAPHTAB_H
 
+#include <QApplication>
 #include <QOpenGLWidget>
+#include <QScreen>
 #include <QPainter>
 #include <QTextEdit>
+#include <QPushButton>
 #include <QVector>
 #include <QPair>
 #include <QTime>
 #include <QFile>
+#include <QFileInfo>
 #include <iostream>
 #include <chrono>
 
@@ -18,8 +22,8 @@ class HeatMap : public QOpenGLWidget
     {
         Waiting,
         Error,
-        SelfCapacity,
-        MutualCapacity,
+        SelfCapacitor,
+        MutualCapacitor,
     };
 
 public:
@@ -33,12 +37,13 @@ protected:
 
 private:
     QTextEdit* stateTextEdit;
+    QPushButton* screenshotButton;
 
     QVector<QPair<State, QVector<int16_t>>> valid;
+    QVector<QVector<int16_t>> newestPacketPack, newestFrame;
+
     QString prev;
-    // std::chrono::high_resolution_clock clock;
-    // decltype(clock.now()) p1, p2;
-    // decltype(std::chrono::duration_cast<std::chrono::microseconds>(p1 - p1)) dur;
+    QRect printArea;
 
     void doPaint(QPainter* painter, uint8_t hue, int16_t data, const QPoint& topLeft, const QSize& size);
 
@@ -47,6 +52,7 @@ signals:
 public slots:
     void onSerialDataReceived(const QByteArray &array);
     void setShouldRefresh(int index);
+    void onSaveScreen();
     void onRefresh();
 };
 

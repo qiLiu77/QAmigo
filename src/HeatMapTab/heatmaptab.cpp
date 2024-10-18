@@ -16,7 +16,15 @@ HeatMap::HeatMap(QWidget *parent)
 {
     stateTextEdit = new QTextEdit(this);
     stateTextEdit->setReadOnly(true);
-    stateTextEdit->resize(200, LINES * HEIGHT);
+    stateTextEdit->resize(200, LINES * HEIGHT - 30);
+    stateTextEdit->move(20, 20 + 30);
+
+    screenshotButton = new QPushButton(this);
+    screenshotButton->setText("截取当前数据");
+    screenshotButton->move(20, 20);
+    connect(screenshotButton, &QPushButton::pressed, this, &HeatMap::onSaveScreen);
+
+    newestFrame.resize(LINES, decltype(newestFrame)::value_type(COLUMNS, 0));
 
     setAttribute(Qt::WA_OpaquePaintEvent);
 }
@@ -27,9 +35,9 @@ void HeatMap::onSerialDataReceived(const QByteArray& packet)
     data.reserve(SELF_CAP_PACKETSIZE);
 
     assert(packet[0] == SELF_CAP_HEADER || packet[0] == MUT_CAP_HEADER);
-    auto state = packet[0] == SELF_CAP_HEADER ? State::SelfCapacity : State::MutualCapacity;
-    if((state == State::SelfCapacity && packet.size() - 1 != SELF_CAP_PACKETSIZE * 2) ||
-       (state == State::MutualCapacity && (packet.size() - 1) % (MUT_CAP_PACKETSIZE * 2) != 0))
+    auto state = packet[0] == SELF_CAP_HEADER ? State::SelfCapacitor : State::MutualCapacitor;
+    if((state == State::SelfCapacitor && packet.size() - 1 != SELF_CAP_PACKETSIZE * 2) ||
+       (state == State::MutualCapacitor && (packet.size() - 1) % (MUT_CAP_PACKETSIZE * 2) != 0))
     {
         valid.emplace_back(State::Error, QVector<int16_t>(SELF_CAP_PACKETSIZE, 0));
         qDebug() << "Error packet: " << packet << Qt::endl;
@@ -43,6 +51,11 @@ void HeatMap::onSerialDataReceived(const QByteArray& packet)
     }
 
     valid.emplace_back(state, data);
+    if(state == State::SelfCapacitor)
+    {
+        newestPacketPack.clear();
+    }
+    newestPacketPack.push_back(std::move(data));
 }
 
 void HeatMap::setShouldRefresh(int index)
@@ -83,7 +96,6 @@ void HeatMap::paintEvent(QPaintEvent *)
         }
     };
 
-    stateTextEdit->move(20, top);
     QPainter painter(this);
 
     // clear the background manually, and draw the table
@@ -92,7 +104,10 @@ void HeatMap::paintEvent(QPaintEvent *)
         painter.eraseRect(0, 0, width(), height());
     }
     painter.setWindow(0, 0, WIDTH * COLUMNS, LINES * HEIGHT);
-    painter.setViewport(left * widthScaler, top * heightScaler, WIDTH * COLUMNS * widthScaler, LINES * HEIGHT * heightScaler);
+    painter.setViewport(printArea = QRect(left * widthScaler,
+                                          top * heightScaler,
+                                          WIDTH * COLUMNS * widthScaler,
+                                          LINES * HEIGHT * heightScaler));
 
     static State oldDataState = State::Error;
     while(true)
@@ -116,10 +131,10 @@ void HeatMap::paintEvent(QPaintEvent *)
             case State::Error:
                 text += "Wrong Packet";
                 break;
-            case State::SelfCapacity:
+            case State::SelfCapacitor:
                 text += "Self Cap";
                 break;
-            case State::MutualCapacity:
+            case State::MutualCapacitor:
                 text += "Mut Cap";
                 break;
             }
@@ -128,25 +143,27 @@ void HeatMap::paintEvent(QPaintEvent *)
         }
 
         // receiving self capacity data
-        if(state == State::SelfCapacity || shouldClearScreen)
+        if(state == State::SelfCapacitor || shouldClearScreen)
         {
             painter.setBrush(QBrush(QColor::fromHsv(60, 255, 255)));
             painter.drawRect(0, 0, COLUMNS * WIDTH, LINES * HEIGHT);
-            for(int j = 0; j < LINES; j++)
+            for(int y = 0; y < LINES; y++)
             {
-                for(int i = LINES; i < COLUMNS + LINES; i++)
+                for(int x = LINES; x < COLUMNS + LINES; x++)
                 {
-                    int16_t d = (std::abs(data[i]) < std::abs(data[j]) ? data[i] : data[j]);
-                    auto topLeft = QPoint(WIDTH * (i - LINES), HEIGHT * (j));
+                    int16_t d = std::abs(data[x]) < std::abs(data[y]) ? data[x] : data[y];
+                    newestFrame[y][x - LINES] = d;
+                    auto topLeft = QPoint(WIDTH * (x - LINES), HEIGHT * y);
                     doPaint(&painter, calcHue(d), d, topLeft, CellSize);
                 }
             }
         }
-        else if(state == State::MutualCapacity)
+        else if(state == State::MutualCapacitor)
         {
             for(int i = 0; i < data.size(); i += 3)
             {
                 int16_t x = data[i], y = data[i + 1], d = data[i + 2];
+                newestFrame[x][y] = d;
                 auto topLeft = QPoint(WIDTH * x, HEIGHT * y);
                 doPaint(&painter, calcHue(d), d, topLeft, CellSize);
             }
@@ -163,6 +180,55 @@ void HeatMap::resizeEvent(QResizeEvent* event)
 {
     setShouldRefresh(3);
     update();
+}
+
+void HeatMap::onSaveScreen()
+{
+    QString baseFilename = QStringLiteral("data/capacitor_%1").arg(QTime()
+                                                                  .currentTime()
+                                                                  .toString()
+                                                                  .replace(':', '_'));
+    QFileInfo fInfo(baseFilename);
+    baseFilename = fInfo.absoluteFilePath();
+
+    int x, y, w, h;
+    printArea.getRect(&x, &y, &w, &h);
+    QPixmap pic = QApplication::primaryScreen()->grabWindow(winId(), x, y, w, h);
+    assert(pic.save(baseFilename + ".jpg"));
+
+    QFile txt(baseFilename + ".txt");
+    assert(txt.open(QIODevice::WriteOnly | QIODevice::Text));
+    QTextStream strm(&txt);
+    bool first = true;
+    for(const auto& lines : newestFrame)
+    {
+        for(const auto elem : lines)
+        {
+            if(!first)
+            {
+                strm << ' ';
+            }
+            strm << elem;
+            first = false;
+        }
+    }
+    strm << '\n';
+
+    for(const auto& packet : newestPacketPack)
+    {
+        first = true;
+        for(const auto elem : packet)
+        {
+            if(!first)
+            {
+                strm << ' ';
+            }
+            strm << elem;
+            first = false;
+        }
+        strm << '\n';
+    }
+    txt.close();
 }
 
 void HeatMap::doPaint(QPainter* painter, uint8_t hue, int16_t data, const QPoint& topLeft, const QSize& size)
