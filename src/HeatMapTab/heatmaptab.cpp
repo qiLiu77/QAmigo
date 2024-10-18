@@ -3,13 +3,11 @@
 #define WIDTH 20
 #define HEIGHT 12
 #define LINES 52
-#define COLUMNS 38
+#define COLUMNS 39
 #define SELF_CAP_PACKETSIZE (LINES + COLUMNS)
 #define MUT_CAP_PACKETSIZE 3
 #define SELF_CAP_HEADER 's'
 #define MUT_CAP_HEADER 'm'
-
-#define SHOW_DETAILED_DATA
 
 const QSize CellSize(WIDTH, HEIGHT);
 
@@ -33,7 +31,7 @@ void HeatMap::onSerialDataReceived(const QByteArray& packet)
     if((state == State::SelfCapacity && packet.size() - 1 != SELF_CAP_PACKETSIZE * 2) ||
        (state == State::MutualCapacity && (packet.size() - 1) % (MUT_CAP_PACKETSIZE * 2) != 0))
     {
-        valid.emplace_back(State::Error, decltype(data)());
+        valid.emplace_back(State::Error, QVector<int16_t>(SELF_CAP_PACKETSIZE, 0));
         qDebug() << "Error packet: " << packet << Qt::endl;
         return;
     }
@@ -173,12 +171,14 @@ void HeatMap::doPaint(QPainter* painter, uint8_t hue, int16_t data, const QPoint
 
     static const QFont font = QFont("Arial", 7);
 
-    QBrush brush = QBrush(QColor::fromHsv(hue, 255, 255));
-    painter->setBrush(brush);
-    painter->drawRect(rect);
+    if(hue != 60)
+    {
+        QBrush brush = QBrush(QColor::fromHsv(hue, 255, 255));
+        painter->setBrush(brush);
+        painter->drawRect(rect);
+    }
 
-
-#ifdef SHOW_DETAILED_DATA
+#ifndef SHOW_DETAILED_DATA
     if(data < -100 || data > 100)
 #endif
     {
