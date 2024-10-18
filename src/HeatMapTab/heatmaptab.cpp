@@ -136,7 +136,7 @@ void HeatMap::paintEvent(QPaintEvent *)
             {
                 for(int i = LINES; i < COLUMNS + LINES; i++)
                 {
-                    int16_t d = (std::abs(data[i]) > std::abs(data[j]) ? data[i] : data[j]);
+                    int16_t d = (std::abs(data[i]) < std::abs(data[j]) ? data[i] : data[j]);
                     auto topLeft = QPoint(WIDTH * (i - LINES), HEIGHT * (j));
                     doPaint(&painter, calcHue(d), d, topLeft, CellSize);
                 }
