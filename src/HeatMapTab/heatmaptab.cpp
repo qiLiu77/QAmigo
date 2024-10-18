@@ -6,9 +6,8 @@
 #define COLUMNS 38
 #define SELF_CAP_PACKETSIZE (LINES + COLUMNS)
 #define MUT_CAP_PACKETSIZE 3
-#define SELF_CAP_HEADER 'S'
-#define MUT_CAP_HEADER 'M'
-#define TAIL 'E'
+#define SELF_CAP_HEADER 's'
+#define MUT_CAP_HEADER 'm'
 
 #define SHOW_DETAILED_DATA
 
@@ -28,13 +27,13 @@ void HeatMap::onSerialDataReceived(const QByteArray& packet)
 {   
     QVector<int16_t> data;
     data.reserve(SELF_CAP_PACKETSIZE);
-    assert(packet[0] == SELF_CAP_HEADER || packet[0] == MUT_CAP_HEADER);
 
+    assert(packet[0] == SELF_CAP_HEADER || packet[0] == MUT_CAP_HEADER);
     auto state = packet[0] == SELF_CAP_HEADER ? State::SelfCapacity : State::MutualCapacity;
-    if((state == State::SelfCapacity && packet.size() - 2 != SELF_CAP_PACKETSIZE * 2) ||
-       (state == State::MutualCapacity && (data.size() - 2) % (MUT_CAP_PACKETSIZE * 2)  != 0))
+    if((state == State::SelfCapacity && packet.size() - 1 != SELF_CAP_PACKETSIZE * 2) ||
+       (state == State::MutualCapacity && (packet.size() - 1) % (MUT_CAP_PACKETSIZE * 2) != 0))
     {
-        valid.push_back({State::Error, {}});
+        valid.emplace_back(State::Error, decltype(data)());
         qDebug() << "Error packet: " << packet << Qt::endl;
         return;
     }
@@ -42,10 +41,10 @@ void HeatMap::onSerialDataReceived(const QByteArray& packet)
     for(int i = 1; i < packet.size(); i += 2)
     {
         auto high = packet[i + 1], low = packet[i];
-        data.push_back(high << 8 | low);
+        data.push_back(high << 8 | (uint8_t)low);
     }
 
-    valid.push_back({state, data});
+    valid.emplace_back(state, data);
 }
 
 void HeatMap::setShouldRefresh(int index)
@@ -56,7 +55,7 @@ void HeatMap::setShouldRefresh(int index)
     }
     shouldClearScreen = true;
     valid.clear();
-    valid.push_back({State::Waiting, QVector<int16_t>(SELF_CAP_PACKETSIZE, 0)});
+    valid.emplace_back(State::Waiting, QVector<int16_t>(SELF_CAP_PACKETSIZE, 0));
 }
 
 void HeatMap::onRefresh()
@@ -69,7 +68,7 @@ void HeatMap::paintEvent(QPaintEvent *)
     static const auto [originalWidth, originalHeight] = size();
     const double widthScaler = static_cast<double>(originalWidth) / width(),
                  heightScaler = static_cast<double>(originalHeight) / height();
-    static const int left = 240, top = 60;
+    static const int left = 240, top = 20;
     static const auto calcHue = [](int16_t data)
     {
         if(data < -100)
@@ -174,14 +173,12 @@ void HeatMap::doPaint(QPainter* painter, uint8_t hue, int16_t data, const QPoint
 
     static const QFont font = QFont("Arial", 7);
 
-    if(hue != 60)
-    {
-        QBrush brush = QBrush(QColor::fromHsv(hue, 255, 255));
-        painter->setBrush(brush);
-        painter->drawRect(rect);
-    }
+    QBrush brush = QBrush(QColor::fromHsv(hue, 255, 255));
+    painter->setBrush(brush);
+    painter->drawRect(rect);
 
-#ifndef SHOW_DETAILED_DATA
+
+#ifdef SHOW_DETAILED_DATA
     if(data < -100 || data > 100)
 #endif
     {
