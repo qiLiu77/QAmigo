@@ -76,22 +76,26 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::switchToTab, tabHeatMap, &HeatMap::setShouldRefresh);
     connect(this, &MainWindow::switchToTab, tabBarChart, &BarChart::setShouldRefresh);
+    connect(this, &MainWindow::switchToTab, tabTrajectoryMap, &TrajectoryMap::setShouldRefresh);
     connect(ui->tabMain, &QTabWidget::currentChanged, [this](int index){
         std::cout << "switched to " << index << std::endl;
         emit switchToTab(index);
         switch(index)
         {
         case 3:
-            connect(decoder, &Decoder::dataReady, tabHeatMap, &HeatMap::onSerialDataReceived);
             disconnect(decoder, nullptr, tabBarChart, nullptr);
+            disconnect(decoder, nullptr, tabTrajectoryMap, nullptr);
+            connect(decoder, &Decoder::dataReady, tabHeatMap, &HeatMap::onSerialDataReceived);
             break;
         case 4:
-            connect(decoder, &Decoder::dataReady, tabBarChart, &BarChart::onSerialDataReceived);
             disconnect(decoder, nullptr, tabHeatMap, nullptr);
+            disconnect(decoder, nullptr, tabTrajectoryMap, nullptr);
+            connect(decoder, &Decoder::dataReady, tabBarChart, &BarChart::onSerialDataReceived);
             break;
         case 5:
-            connect(decoder, &Decoder::dataReady, tabBarChart, &BarChart::onSerialDataReceived);
             disconnect(decoder, nullptr, tabHeatMap, nullptr);
+            disconnect(decoder, nullptr, tabBarChart, nullptr);
+            connect(decoder, &Decoder::dataReady, tabTrajectoryMap, &TrajectoryMap::onSerialDataReceived);
             break;
         }
     });
@@ -99,8 +103,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, tabHeatMap, &HeatMap::onRefresh);
     connect(timer, &QTimer::timeout, tabBarChart, &BarChart::onRefresh);
+    connect(timer, &QTimer::timeout, tabTrajectoryMap, &TrajectoryMap::onRefresh);
 
-    timer->start(100);
+    timer->start(10);
 
     QString folderString = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QSerial Socket Amigo";
     QFileInfo folder(folderString);

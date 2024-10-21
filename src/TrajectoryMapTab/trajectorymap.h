@@ -1,6 +1,7 @@
 #ifndef TRAJECTORYMAP_H
 #define TRAJECTORYMAP_H
 
+#include <QApplication>
 #include <QWidget>
 #include <QPainter>
 #include <QKeyEvent>
@@ -28,13 +29,14 @@ private:
     QQueue<std::tuple<bool, QPoint, uint16_t>> valid;
     QPixmap saved;
 
-    bool isShowingOld = false;
+    bool isShowingOld = false, isSwitching = false;
 
 signals:
 
 public slots:
     void onSerialDataReceived(const QByteArray &array);
     void setShouldRefresh(int index);
+    void onRefresh();
 };
 
 #endif // TRAJECTORYMAP_H
