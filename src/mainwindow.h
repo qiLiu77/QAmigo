@@ -14,6 +14,7 @@
 #include "AdvancedTab/decoder.h"
 #include "HeatMapTab/heatmaptab.h"
 #include "BarChartTab/barcharttab.h"
+#include "TrajectoryMapTab/trajectorymap.h"
 
 namespace Ui {
 class MainWindow;
@@ -59,6 +60,7 @@ private:
     QTranslator *translator;
     HeatMap *tabHeatMap;
     BarChart *tabBarChart;
+    TrajectoryMap *tabTrajectoryMap;
 
     // QWidget interface
 protected:

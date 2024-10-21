@@ -2,11 +2,8 @@
 
 #define X_BIN_CNT (50 + 1)
 #define Y_BIN_CNT (37 + 1)
-#define DATABITS 4
-#define DATA_PACKET_SIZE 8
 #define WIDTH 18
 #define HEIGHT 275
-#define DATA_MAX 6000
 #define X_HEADER 'x'
 #define Y_HEADER 'y'
 #define DATA_SUBHEADER 'd'

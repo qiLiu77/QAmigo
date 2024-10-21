@@ -60,6 +60,9 @@ MainWindow::MainWindow(QWidget *parent) :
     tabBarChart = new BarChart(this);
     ui->tabMain->addTab(tabBarChart, tr("BarChart"));
 
+    tabTrajectoryMap = new TrajectoryMap(this);
+    ui->tabMain->addTab(tabTrajectoryMap, tr("TrajectoryMap"));
+
     decoder = new Decoder(this, tabAdvanced->getListProtocals(), tabAdvanced->getEndianess());
 
     connect(ui->buttonOpen, &QPushButton::clicked, this, &MainWindow::openSerial);
@@ -86,12 +89,17 @@ MainWindow::MainWindow(QWidget *parent) :
             connect(decoder, &Decoder::dataReady, tabBarChart, &BarChart::onSerialDataReceived);
             disconnect(decoder, nullptr, tabHeatMap, nullptr);
             break;
+        case 5:
+            connect(decoder, &Decoder::dataReady, tabBarChart, &BarChart::onSerialDataReceived);
+            disconnect(decoder, nullptr, tabHeatMap, nullptr);
+            break;
         }
     });
 
     QTimer *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, tabHeatMap, &HeatMap::onRefresh);
     connect(timer, &QTimer::timeout, tabBarChart, &BarChart::onRefresh);
+
     timer->start(100);
 
     QString folderString = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/QSerial Socket Amigo";

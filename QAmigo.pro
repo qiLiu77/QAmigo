@@ -36,6 +36,7 @@ SOURCES += \
         src/AdvancedTab/vartype.cpp \
         src/BarChartTab/barcharttab.cpp \
         src/HeatMapTab/heatmaptab.cpp \
+        src/TrajectoryMapTab/trajectorymap.cpp \
         src/mainwindow.cpp \
         src/main.cpp \
         src/SimpleTab/serialsendbox.cpp \
@@ -55,6 +56,7 @@ HEADERS += \
         src/AdvancedTab/vartype.h \
         src/BarChartTab/barcharttab.h \
         src/HeatMapTab/heatmaptab.h \
+        src/TrajectoryMapTab/trajectorymap.h \
         src/mainwindow.h \
         src/SimpleTab/serialsendbox.h \
         src/SimpleTab/tabcomsimple.h \
