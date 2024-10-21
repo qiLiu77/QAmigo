@@ -9,7 +9,7 @@ TrajectoryMap::TrajectoryMap(QWidget *parent)
 {
     statusLabel = new QLabel(this);
     statusLabel->move(10, 10);
-    statusLabel->setText("showing current.");
+    statusLabel->setText("showing current");
 
     setFocusPolicy(Qt::StrongFocus);
     setFocus();
@@ -61,7 +61,7 @@ void TrajectoryMap::paintEvent(QPaintEvent*)
                  heightScaler = static_cast<double>(height()) / DATA_MAX.height();
 
     QPainter painter(this);
-    static QPoint last[2] = {NO_PREVIOUS_POINT, NO_PREVIOUS_POINT};
+    static QPointF last[2] = {NO_PREVIOUS_POINT, NO_PREVIOUS_POINT};
 
     if(shouldClearScreen)
     {
@@ -76,7 +76,10 @@ void TrajectoryMap::paintEvent(QPaintEvent*)
 
     while(!valid.empty())
     {
-        auto [o, pt, p] = std::move(valid.front());
+        bool o;
+        QPointF pt;
+        uint16_t p;
+        std::tie(o, pt, p) = std::move(valid.front());
         valid.pop_front();
         if(p == 0)
         {
@@ -86,7 +89,7 @@ void TrajectoryMap::paintEvent(QPaintEvent*)
         pt.rx() *= widthScaler, pt.ry() *= heightScaler;
         if(last[o] != NO_PREVIOUS_POINT)
         {
-            painter.setPen(QPen(Qt::black, 3.0 * p / PRESSURE_MAX));
+            painter.setPen({Qt::black, 3.0 * p / PRESSURE_MAX});
             painter.drawLine(last[o], pt);
         }
         last[o] = std::move(pt);
@@ -134,6 +137,7 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
         if(statusLabel->text() == currentText)
         {
             statusLabel->setText(nextText);
+            statusLabel->adjustSize();
         }
         timer->stop();
         timer->deleteLater();
