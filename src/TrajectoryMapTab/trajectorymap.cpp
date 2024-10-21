@@ -1,6 +1,7 @@
 #include "trajectorymap.h"
 
 #define PRESSURE_MAX 0x1FFF
+#define TR_PACKET_HEADER 't'
 constexpr QPoint NO_PREVIOUS_POINT(0x7FFF, 0x7FFF);
 constexpr QSize DATA_MAX(0x5750, 0x3690);
 
@@ -19,6 +20,10 @@ TrajectoryMap::TrajectoryMap(QWidget *parent)
 
 void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
 {
+    if(packet[0] != TR_PACKET_HEADER)
+    {
+        return;
+    }
     assert((packet.size() - 1) % 6 == 0);
     int i = 1;
     while(i < packet.size())
