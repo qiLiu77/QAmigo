@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::switchToTab, tabBarChart, &BarChart::setShouldRefresh);
     connect(this, &MainWindow::switchToTab, tabTrajectoryMap, &TrajectoryMap::setShouldRefresh);
     connect(ui->tabMain, &QTabWidget::currentChanged, [this](int index){
-        std::cout << "switched to " << index << std::endl;
+        //std::cout << "switched to " << index << std::endl;
         emit switchToTab(index);
         switch(index)
         {
