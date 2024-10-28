@@ -9,6 +9,8 @@
 #include <tuple>
 #include <QQueue>
 #include <QTimer>
+#include <QTime>
+#include <QFileInfo>
 #include <QPixmap>
 
 class TrajectoryMap : public QWidget
@@ -27,6 +29,7 @@ private:
     QLabel* statusLabel;
 
     QQueue<std::tuple<bool, QPoint, uint16_t>> valid;
+    QVector<QVector<uint16_t>> newestPacketPack;
     QPixmap saved;
 
     bool isShowingOld = false, isSwitching = false;

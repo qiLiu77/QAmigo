@@ -1,4 +1,5 @@
 #include "trajectorymap.h"
+#include "combine.h"
 
 #define PRESSURE_MAX 0x1FFF
 #define TR_PACKET_HEADER 't'
@@ -24,29 +25,49 @@ void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
     {
         return;
     }
-    assert((packet.size() - 1) % 6 == 0);
+
     int i = 1;
-    while(i < packet.size())
+    //ensure there are at least 6 bytes
+    while(i + 6 <= packet.size())
     {
-        auto xhigh = packet[i + 1],
-             xlow  = packet[i],
-             yhigh = packet[i + 3],
-             ylow  = packet[i + 2],
-             phigh = packet[i + 5],
-             plow  = packet[i + 4];
-        QPoint pt(DATA_MAX.width() - (xhigh << 8 | (uint8_t)xlow), DATA_MAX.height() - (yhigh << 8 | (uint8_t)ylow));
-        bool v = pt.x() >> 15 & 1, o = pt.y() >> 15 & 1;
+        auto x = combineToInt<2>(packet, i),
+             y = combineToInt<2>(packet, i + 2),
+             p = combineToInt<2>(packet, i + 4);
+        QVector<uint16_t> arr;
+        bool v = x >> 15 & 1, o = y >> 15 & 1;
+        x &= 0x7FFF, y &= 0x7FFF;
+        QPoint pt(DATA_MAX.width() - x, DATA_MAX.height() - y);
+        int more = p >> (sizeof(p) * 8 - 3) & 0x7;
+
+        //enxure there are at least 6 + more bytes
+        if(i + 6 + more > packet.size())
+        {
+            goto error;
+        }
+        p &= PRESSURE_MAX;
+        i += 6 + more;
         if(!v)
         {
             continue;
         }
-        pt.rx() &= 0x7FFF, pt.ry() &= 0x7FFF;
-        valid.emplace_back(o, pt, phigh << 8 | (uint8_t)plow);
+        valid.emplace_back(o, std::move(pt), p);
 
-        i += 6;
+        arr.append(decltype(arr){x, y, p});
+        for(int j = i - more; j < i; j += 2)
+        {
+            arr.append(combineToInt<2>(packet, j));
+        }
+        newestPacketPack.append(std::move(arr));
     }
 
-    assert(i == packet.size());
+    if(i != packet.size())
+    {
+        goto error;
+    }
+    return;
+
+    error:
+    qDebug() << "Error packet: " << packet.toHex(' ') <<Qt::endl;
 }
 
 void TrajectoryMap::setShouldRefresh(int index)
@@ -89,6 +110,7 @@ void TrajectoryMap::paintEvent(QPaintEvent*)
         if(!isSwitching)
         {
             saved = QPixmap();
+            newestPacketPack.clear();
         }
     }
     if(isSwitching)
@@ -134,9 +156,43 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
     {
     case Qt::Key_S:
     {
+        QString baseFilename = QStringLiteral("data/trajectory_%1").arg(QTime()
+                                                                   .currentTime()
+                                                                   .toString()
+                                                                   .replace(':', '_'));
+        QFileInfo fInfo(baseFilename);
+        baseFilename = fInfo.absoluteFilePath();
+
         auto g = geometry();
         saved = QApplication::primaryScreen()->grabWindow(winId(), g.left(), g.top(), g.width(), g.height());
-        assert(saved.save("data/export.png"));
+        assert(saved.save(baseFilename + ".png"));
+
+        QFile txt(baseFilename + ".txt");
+        assert(txt.open(QIODevice::WriteOnly | QIODevice::Text));
+        QTextStream strm(&txt);
+        bool ofirst = true, ifirst = true;
+        for(const auto& lines : newestPacketPack)
+        {
+            if(!ofirst)
+            {
+                strm << '\n';
+            }
+
+            for(const auto elem : lines)
+            {
+                if(!ifirst)
+                {
+                    strm << ' ';
+                }
+
+                strm << elem;
+                ifirst = false;
+            }
+            ifirst = true;
+            ofirst = false;
+        }
+        txt.close();
+
         //currentText = "saved";
         //nextText = statusLabel->text();
         break;
