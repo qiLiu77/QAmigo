@@ -243,3 +243,9 @@ void TrajectoryMap::mouseMoveEvent(QMouseEvent* event)
     coil = {(DATA_MAX.width() - mouse.first) / 422.0 - 1,
             mouse.second > DATA_MAX.height() ? INVALID_COIL : (DATA_MAX.height() - mouse.second) / 350.0 - 1};
 }
+
+void TrajectoryMap::resizeEvent(QResizeEvent* event)
+{
+    setShouldRefresh(4);
+    update();
+}

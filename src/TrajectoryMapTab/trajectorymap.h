@@ -28,6 +28,7 @@ protected:
     void paintEvent(QPaintEvent*) override;
     void keyPressEvent(QKeyEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private:
     QLabel* positionLabel;
