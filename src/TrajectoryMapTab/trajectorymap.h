@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QPainter>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QLabel>
 #include <tuple>
 #include <QQueue>
@@ -24,15 +25,19 @@ public:
 protected:
     void paintEvent(QPaintEvent*) override;
     void keyPressEvent(QKeyEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
 
 private:
-    QLabel* statusLabel;
+    QLabel* positionLabel;
 
     QQueue<std::tuple<bool, QPoint, uint16_t>> valid;
     QVector<QVector<uint16_t>> newestPacketPack;
     QPixmap saved;
+    QPair<uint16_t, uint16_t> mouse;
+    QPair<double, double> coil;
 
     bool isShowingOld = false, isSwitching = false;
+    double widthScaler, heightScaler;
 
 signals:
 

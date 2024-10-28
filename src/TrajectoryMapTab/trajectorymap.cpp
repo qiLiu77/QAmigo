@@ -3,6 +3,10 @@
 
 #define PRESSURE_MAX 0x1FFF
 #define TR_PACKET_HEADER 't'
+#define X_COIL_NUM 52
+#define Y_COIL_NUM 39
+#define HEIGHT_RESERVED 30
+#define INVALID_COIL -999.0
 constexpr QPoint NO_PREVIOUS_POINT(0x7FFF, 0x7FFF);
 constexpr QSize DATA_MAX(0x5750, 0x3690);
 
@@ -12,9 +16,13 @@ TrajectoryMap::TrajectoryMap(QWidget *parent)
     // statusLabel = new QLabel(this);
     // statusLabel->move(10, 10);
     // statusLabel->setText("showing current");
+    positionLabel = new QLabel(this);
+    positionLabel->resize(200, HEIGHT_RESERVED - 6);
 
     setFocusPolicy(Qt::StrongFocus);
     setFocus();
+
+    setMouseTracking(true);
 
     setAttribute(Qt::WA_OpaquePaintEvent);
 }
@@ -89,8 +97,9 @@ void TrajectoryMap::onRefresh()
 
 void TrajectoryMap::paintEvent(QPaintEvent*)
 {
-    const double widthScaler = static_cast<double>(width()) / DATA_MAX.width(),
-                 heightScaler = static_cast<double>(height()) / DATA_MAX.height();
+    widthScaler = static_cast<double>(width()) / DATA_MAX.width();
+    heightScaler = static_cast<double>(height() - HEIGHT_RESERVED) / DATA_MAX.height();
+    positionLabel->move(10, height() - (HEIGHT_RESERVED - 3));
 
     QPainter painter(this);
     static QPointF last[2] = {NO_PREVIOUS_POINT, NO_PREVIOUS_POINT};
@@ -102,7 +111,7 @@ void TrajectoryMap::paintEvent(QPaintEvent*)
     if(shouldClearScreen)
     {
         painter.setBrush(Qt::white);
-        painter.drawRect(0, 0, width(), height());
+        painter.drawRect(0, 0, width(), height() - HEIGHT_RESERVED);
         last[0] = last[1] = NO_PREVIOUS_POINT;
         shouldClearScreen = false;
 
@@ -120,6 +129,15 @@ void TrajectoryMap::paintEvent(QPaintEvent*)
         painter.drawPixmap(0, 0, saved);
         saved = std::move(now);
         isSwitching = false;
+    }
+
+    painter.eraseRect(0, height() - HEIGHT_RESERVED, width(), height());
+    if(std::abs(coil.second - INVALID_COIL) > 1e-6)
+    {
+        positionLabel->setText(QStringLiteral("mouse: %1  %2    coil: %3  %4").arg(mouse.first)
+                                                                              .arg(mouse.second)
+                                                                              .arg(coil.first, 0, 'f', 1)
+                                                                              .arg(coil.second, 0, 'f', 1));
     }
 
     while(!valid.empty())
@@ -157,9 +175,9 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
     case Qt::Key_S:
     {
         QString baseFilename = QStringLiteral("data/trajectory_%1").arg(QTime()
-                                                                   .currentTime()
-                                                                   .toString()
-                                                                   .replace(':', '_'));
+                                                                       .currentTime()
+                                                                       .toString()
+                                                                       .replace(':', '_'));
         QFileInfo fInfo(baseFilename);
         baseFilename = fInfo.absoluteFilePath();
 
@@ -193,16 +211,12 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
         }
         txt.close();
 
-        //currentText = "saved";
-        //nextText = statusLabel->text();
         break;
     }
     case Qt::Key_R:
         isShowingOld = !isShowingOld;
         shouldClearScreen = true;
         isSwitching = true;
-        //currentText = isShowingOld ? "showing old" : "restored";
-        //nextText = isShowingOld ? "showing old" : "showing current";
         break;
     case Qt::Key_Space:
         shouldClearScreen = true;
@@ -210,18 +224,13 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
 
     update();
     QWidget::keyPressEvent(event);
+}
 
-    // statusLabel->setText(currentText);
-    // auto* timer = new QTimer;
-    // connect(timer, &QTimer::timeout, [=]()
-    // {
-    //     if(statusLabel->text() == currentText)
-    //     {
-    //         statusLabel->setText(nextText);
-    //         statusLabel->adjustSize();
-    //     }
-    //     timer->stop();
-    //     timer->deleteLater();
-    // });
-    // timer->start(2000);
+void TrajectoryMap::mouseMoveEvent(QMouseEvent* event)
+{
+    auto pos = event->position();
+    mouse = {DATA_MAX.width() - pos.x() / widthScaler,
+             DATA_MAX.height() - pos.y() / heightScaler};
+    coil = {(DATA_MAX.width() - mouse.first) / 422.0 - 1,
+            mouse.second > DATA_MAX.height() ? INVALID_COIL : (DATA_MAX.height() - mouse.second) / 350.0 - 1};
 }
