@@ -184,51 +184,65 @@ void HeatMap::resizeEvent(QResizeEvent* event)
 
 void HeatMap::onSaveScreen()
 {
-    QString baseFilename = QStringLiteral("data/capacitor_%1").arg(QTime()
-                                                                  .currentTime()
-                                                                  .toString()
-                                                                  .replace(':', '_'));
-    QFileInfo fInfo(baseFilename);
-    baseFilename = fInfo.absoluteFilePath();
-
-    int x, y, w, h;
-    printArea.getRect(&x, &y, &w, &h);
-    QPixmap pic = QApplication::primaryScreen()->grabWindow(winId(), x, y, w, h);
-    assert(pic.save(baseFilename + ".jpg"));
-
-    QFile txt(baseFilename + ".txt");
-    assert(txt.open(QIODevice::WriteOnly | QIODevice::Text));
-    QTextStream strm(&txt);
-    bool first = true;
-    for(const auto& lines : newestFrame)
     {
-        for(const auto elem : lines)
+        QString baseFilename = QStringLiteral("data/capacitor_%1").arg(QTime()
+                                                                      .currentTime()
+                                                                      .toString()
+                                                                      .replace(':', '_'));
+        QFileInfo fInfo(baseFilename);
+        baseFilename = fInfo.absoluteFilePath();
+
+        int x, y, w, h;
+        printArea.getRect(&x, &y, &w, &h);
+        QPixmap pic = QApplication::primaryScreen()->grabWindow(winId(), x, y, w, h);
+        if(!pic.save(baseFilename + ".jpg"))
         {
-            if(!first)
-            {
-                strm << ' ';
-            }
-            strm << elem;
-            first = false;
+            goto error;
         }
-    }
-    strm << '\n';
 
-    for(const auto& packet : newestPacketPack)
-    {
-        first = true;
-        for(const auto elem : packet)
+        QFile txt(baseFilename + ".txt");
+        if(!txt.open(QIODevice::WriteOnly | QIODevice::Text))
         {
-            if(!first)
+            goto error;
+        }
+        QTextStream strm(&txt);
+        bool first = true;
+        for(const auto& lines : newestFrame)
+        {
+            for(const auto elem : lines)
             {
-                strm << ' ';
+                if(!first)
+                {
+                    strm << ' ';
+                }
+                strm << elem;
+                first = false;
             }
-            strm << elem;
-            first = false;
         }
         strm << '\n';
+
+        for(const auto& packet : newestPacketPack)
+        {
+            first = true;
+            for(const auto elem : packet)
+            {
+                if(!first)
+                {
+                    strm << ' ';
+                }
+                strm << elem;
+                first = false;
+            }
+            strm << '\n';
+        }
+        txt.close();
     }
-    txt.close();
+
+    QMessageBox(QMessageBox::Information, "提示", "保存成功", QMessageBox::Ok).exec();
+    return;
+
+error:
+    QMessageBox(QMessageBox::Warning, "提示", "保存失败", QMessageBox::Ok).exec();
 }
 
 void HeatMap::doPaint(QPainter* painter, uint8_t hue, int16_t data, const QPoint& topLeft, const QSize& size)

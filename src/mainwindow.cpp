@@ -52,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tabMain->addTab(tabCOMSimple, tr("Simple"));
 
     tabAdvanced = new TabAdvanced(this);
-    ui->tabMain->addTab(tabAdvanced, tr("Advanced"));
+    //ui->tabMain->addTab(tabAdvanced, tr("Advanced"));
 
     tabHeatMap = new HeatMap(this);
     ui->tabMain->addTab(tabHeatMap, tr("HeatMap"));

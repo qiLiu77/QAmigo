@@ -183,10 +183,17 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
 
         auto g = geometry();
         saved = QApplication::primaryScreen()->grabWindow(winId(), g.left(), g.top(), g.width(), g.height());
-        assert(saved.save(baseFilename + ".png"));
+        if(!saved.save(baseFilename + ".png"))
+        {
+            goto error;
+        }
 
         QFile txt(baseFilename + ".txt");
-        assert(txt.open(QIODevice::WriteOnly | QIODevice::Text));
+        if(!txt.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            goto error;
+        }
+
         QTextStream strm(&txt);
         bool ofirst = true, ifirst = true;
         for(const auto& lines : newestPacketPack)
@@ -224,6 +231,11 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
 
     update();
     QWidget::keyPressEvent(event);
+    QMessageBox(QMessageBox::Information, "提示", "保存成功", QMessageBox::Ok).exec();
+    return;
+
+    error:
+    QMessageBox(QMessageBox::Warning, "提示", "保存失败", QMessageBox::Ok).exec();
 }
 
 void TrajectoryMap::mouseMoveEvent(QMouseEvent* event)

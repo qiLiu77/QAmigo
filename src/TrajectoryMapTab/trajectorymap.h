@@ -11,8 +11,10 @@
 #include <QQueue>
 #include <QTimer>
 #include <QTime>
+#include <QFile>
 #include <QFileInfo>
 #include <QPixmap>
+#include <QMessageBox>
 
 class TrajectoryMap : public QWidget
 {
