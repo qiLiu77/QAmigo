@@ -60,7 +60,7 @@ void HeatMap::onSerialDataReceived(const QByteArray& packet)
 
 void HeatMap::setShouldRefresh(int index)
 {
-    if(index != 3)
+    if(index != 2)
     {
         return;
     }
@@ -178,7 +178,7 @@ void HeatMap::paintEvent(QPaintEvent *)
 
 void HeatMap::resizeEvent(QResizeEvent* event)
 {
-    setShouldRefresh(3);
+    setShouldRefresh(2);
     update();
 }
 
@@ -188,7 +188,7 @@ void HeatMap::onSaveScreen()
         QString baseFilename = QStringLiteral("data/capacitor_%1").arg(QTime()
                                                                       .currentTime()
                                                                       .toString()
-                                                                      .replace(':', '_'));
+                                                                           .replace(':', '_'));
         QFileInfo fInfo(baseFilename);
         baseFilename = fInfo.absoluteFilePath();
 

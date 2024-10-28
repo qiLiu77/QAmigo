@@ -228,6 +228,10 @@ error:
 
 void BarChart::setShouldRefresh(int index)
 {
+    if(index != 3)
+    {
+        return;
+    }
     valid.clear();
     base[X].clear();
     base[Y].clear();

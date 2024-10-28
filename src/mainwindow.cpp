@@ -82,17 +82,17 @@ MainWindow::MainWindow(QWidget *parent) :
         emit switchToTab(index);
         switch(index)
         {
-        case 3:
+        case 2:
             disconnect(decoder, nullptr, tabBarChart, nullptr);
             disconnect(decoder, nullptr, tabTrajectoryMap, nullptr);
             connect(decoder, &Decoder::dataReady, tabHeatMap, &HeatMap::onSerialDataReceived);
             break;
-        case 4:
+        case 3:
             disconnect(decoder, nullptr, tabHeatMap, nullptr);
             disconnect(decoder, nullptr, tabTrajectoryMap, nullptr);
             connect(decoder, &Decoder::dataReady, tabBarChart, &BarChart::onSerialDataReceived);
             break;
-        case 5:
+        case 4:
             disconnect(decoder, nullptr, tabHeatMap, nullptr);
             disconnect(decoder, nullptr, tabBarChart, nullptr);
             connect(decoder, &Decoder::dataReady, tabTrajectoryMap, &TrajectoryMap::onSerialDataReceived);

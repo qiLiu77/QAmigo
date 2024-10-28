@@ -29,10 +29,7 @@ TrajectoryMap::TrajectoryMap(QWidget *parent)
 
 void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
 {
-    if(packet[0] != TR_PACKET_HEADER)
-    {
-        return;
-    }
+    assert(packet[0] == TR_PACKET_HEADER);
 
     int i = 1;
     //ensure there are at least 6 bytes
@@ -80,7 +77,7 @@ void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
 
 void TrajectoryMap::setShouldRefresh(int index)
 {
-    if(index != 5)
+    if(index != 4)
     {
         return;
     }
