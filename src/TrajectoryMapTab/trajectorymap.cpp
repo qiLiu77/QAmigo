@@ -17,7 +17,7 @@ TrajectoryMap::TrajectoryMap(QWidget *parent)
     // statusLabel->move(10, 10);
     // statusLabel->setText("showing current");
     positionLabel = new QLabel(this);
-    positionLabel->resize(200, HEIGHT_RESERVED - 6);
+    positionLabel->resize(300, HEIGHT_RESERVED - 6);
 
     setFocusPolicy(Qt::StrongFocus);
     setFocus();
