@@ -53,7 +53,7 @@ void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
             goto error;
         }
         p &= PRESSURE_MAX;
-        i += 6 + more;
+        i += 6 + more * 2;
         if(!v)
         {
             continue;
@@ -61,7 +61,7 @@ void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
         valid.emplace_back(o, std::move(pt), p);
 
         arr.append(decltype(arr){x, y, p});
-        for(int j = i - more; j < i; j += 2)
+        for(int j = i - more * 2; j < i; j += 2)
         {
             arr.append(combineToInt<2>(packet, j));
         }
