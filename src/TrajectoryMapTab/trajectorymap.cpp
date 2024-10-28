@@ -215,6 +215,7 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
         }
         txt.close();
 
+        QMessageBox(QMessageBox::Information, "提示", "保存成功", QMessageBox::Ok).exec();
         break;
     }
     case Qt::Key_R:
@@ -228,7 +229,6 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
 
     update();
     QWidget::keyPressEvent(event);
-    QMessageBox(QMessageBox::Information, "提示", "保存成功", QMessageBox::Ok).exec();
     return;
 
     error:
