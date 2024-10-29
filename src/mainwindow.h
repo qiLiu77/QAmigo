@@ -5,7 +5,6 @@
 #include <QSerialPort>
 #include <QWidget>
 #include <QTimer>
-#include <iostream>
 
 #include "SimpleTab/serialsendbox.h"
 #include "SimpleTab/tabcomsimple.h"

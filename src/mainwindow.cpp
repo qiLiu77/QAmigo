@@ -111,10 +111,12 @@ MainWindow::MainWindow(QWidget *parent) :
     QFileInfo folder(folderString);
     if (!folder.exists())
         QDir().mkdir(folderString);
-    folderString.append("/plugins");
-    QFileInfo pluginsFolder(folderString);
+    QFileInfo pluginsFolder(folderString + "/plugins");
     if (!pluginsFolder.exists())
-        QDir().mkdir(folderString);
+        QDir().mkdir(folderString + "/plugins");
+    QFileInfo screenshotFolder(folderString + "/data");
+    if (!screenshotFolder.exists())
+        QDir().mkdir(folderString + "/data");
 
     connect(ui->actionEnglish, &QAction::triggered, this, &MainWindow::onActionEnglishTriggered);
     ui->menuLanguage->addAction(tr("简体中文"), this, &MainWindow::onActionChineseTriggered);

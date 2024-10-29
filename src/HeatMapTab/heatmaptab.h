@@ -12,6 +12,7 @@
 #include <QTime>
 #include <QFile>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QMessageBox>
 #include <iostream>
 #include <chrono>

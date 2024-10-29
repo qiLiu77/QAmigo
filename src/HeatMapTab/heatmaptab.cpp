@@ -185,12 +185,10 @@ void HeatMap::resizeEvent(QResizeEvent* event)
 void HeatMap::onSaveScreen()
 {
     {
-        QString baseFilename = QStringLiteral("data/capacitor_%1").arg(QTime()
-                                                                      .currentTime()
-                                                                      .toString()
-                                                                           .replace(':', '_'));
-        QFileInfo fInfo(baseFilename);
-        baseFilename = fInfo.absoluteFilePath();
+        QString baseFilename(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                             "/QSerial Socket Amigo/data/capacitor_%1");
+        baseFilename = baseFilename.arg(QTime().currentTime().toString().replace(':', '_'));
+        baseFilename = QFileInfo(baseFilename).absoluteFilePath();
 
         int x, y, w, h;
         printArea.getRect(&x, &y, &w, &h);

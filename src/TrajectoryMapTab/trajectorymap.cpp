@@ -44,8 +44,8 @@ void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
         QPoint pt(DATA_MAX.width() - x, DATA_MAX.height() - y);
         int more = p >> (sizeof(p) * 8 - 3) & 0x7;
 
-        //enxure there are at least 6 + more bytes
-        if(i + 6 + more > packet.size())
+        //enxure there are at least 6 + more * 2 bytes
+        if(i + 6 + more * 2 > packet.size())
         {
             goto error;
         }
@@ -171,12 +171,10 @@ void TrajectoryMap::keyPressEvent(QKeyEvent* event)
     {
     case Qt::Key_S:
     {
-        QString baseFilename = QStringLiteral("data/trajectory_%1").arg(QTime()
-                                                                       .currentTime()
-                                                                       .toString()
-                                                                       .replace(':', '_'));
-        QFileInfo fInfo(baseFilename);
-        baseFilename = fInfo.absoluteFilePath();
+        QString baseFilename(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                             "/QSerial Socket Amigo/data/trajectory_%1");
+        baseFilename = baseFilename.arg(QTime().currentTime().toString().replace(':', '_'));
+        baseFilename = QFileInfo(baseFilename).absoluteFilePath();
 
         auto g = geometry();
         saved = QApplication::primaryScreen()->grabWindow(winId(), g.left(), g.top(), g.width(), g.height());

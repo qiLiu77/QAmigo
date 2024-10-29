@@ -13,6 +13,7 @@
 #include <QTime>
 #include <QFile>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QPixmap>
 #include <QMessageBox>
 
