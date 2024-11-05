@@ -35,7 +35,7 @@ private:
     QLabel* positionLabel;
 
     QQueue<std::tuple<bool, QPoint, uint16_t>> valid;
-    QVector<QVector<uint16_t>> newestPacketPack;
+    QVector<QVector<uint32_t>> newestPacketPack;
     QPixmap saved;
     QPair<uint16_t, uint16_t> mouse;
     QPair<double, double> coil;

@@ -41,30 +41,47 @@ void TrajectoryMap::onSerialDataReceived(const QByteArray& packet)
         auto x = combineToInt<2>(packet, i),
              y = combineToInt<2>(packet, i + 2),
              p = combineToInt<2>(packet, i + 4);
-        QVector<uint16_t> arr;
         bool v = x >> 15 & 1, o = y >> 15 & 1;
         x &= 0x7FFF, y &= 0x7FFF;
         QPoint pt(DATA_MAX.width() - x, DATA_MAX.height() - y);
-        int more = p >> (sizeof(p) * 8 - 3) & 0x7;
-
-        //enxure there are at least 6 + more * 2 bytes
-        if(i + 6 + more * 2 > packet.size())
-        {
-            goto error;
-        }
+        int more = p >> (sizeof(p) * 8 - 3) & 7;
         p &= PRESSURE_MAX;
-        i += 6 + more * 2;
         if(!v)
         {
             continue;
         }
-        valid.emplace_back(o, std::move(pt), p);
-
-        arr.append(decltype(arr){x, y, p});
-        for(int j = i - more * 2; j < i; j += 2)
+        if(i + more * 4 >= packet.size())
         {
-            arr.append(combineToInt<2>(packet, j));
+            goto error;
         }
+
+        QVector<uint32_t> arr{x, y, p};
+        for(int j = 0; j < more; j++)
+        {
+            uint32_t slice = combineToInt<4>(packet, i);
+            bool high = slice << 30 & 2, low = slice << 15 & 1;
+            switch(high << 1 | low)
+            {
+            case 3:
+            case 2:
+                arr.push_back(combineToInt<4>(packet, i) & 0x7FFFFFFF);
+                break;
+            case 1:
+                arr.push_back(combineToInt<2>(packet, i) & 0x7FFF);
+                arr.push_back(combineToInt<2>(packet, i + 2) & 0x7FFF);
+                break;
+            case 0:
+                arr.push_back(packet[i + 0] & 0x7F);
+                arr.push_back(packet[i + 1]);
+                arr.push_back(packet[i + 2] & 0x7F);
+                arr.push_back(packet[i + 3]);
+                break;
+            }
+
+            i += 4;
+        }
+
+        valid.emplace_back(o, std::move(pt), p);
         newestPacketPack.append(std::move(arr));
     }
 
