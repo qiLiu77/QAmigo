@@ -153,7 +153,7 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
         static const auto axisMap = QMap<QChar, int>{{X_HEADER, X}, {Y_HEADER, Y}},
                           dataMap = QMap<QChar, int>{{DATA_SUBHEADER, D}, {I_SUBHEADER, I}, {Q_SUBHEADER, Q}};
 
-        const int idx = data[0];
+        const int idx = data[0] - 3;
         auto series = this->barSeries[u = axisMap[u]][v = dataMap[v]];
 
         //get and remove old set
