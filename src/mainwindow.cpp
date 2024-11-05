@@ -134,7 +134,7 @@ void MainWindow::refreshPorts()
 {
     QList<QSerialPortInfo> infos = QSerialPortInfo::availablePorts();
     ui->comboPorts->clear();
-    for (QSerialPortInfo info : infos)
+    for (QSerialPortInfo& info : infos)
         ui->comboPorts->addItem(info.portName());
 
 }
@@ -146,109 +146,111 @@ void MainWindow::errorMessage(QString str)
 
 void MainWindow::openSerial()
 {
-    if (ui->comboPorts->currentText() != "") {
-        if (port->isOpen()) {
-            port->close();
-            ui->buttonOpen->setText(tr("Open"));
-            tabAdvanced->setAllowRunning(false);
-        } else {
-            port->setPortName(ui->comboPorts->currentText());
-            bool ok;
-            qint32 baudrate = ui->comboBaudrate->currentText().toInt(&ok);
-            if (ok)
-                port->setBaudRate(baudrate);
-            else {
-                QMessageBox::warning(this, tr("Error"), tr("Baudrate parse failed"));
-                return;
-            }
+    if (ui->comboPorts->currentText().isEmpty()) {
+        return;
+    }
 
-            QSerialPort::DataBits dataBits = QSerialPort::Data8;
-            switch(ui->comboDataBits->currentData().toInt()) {
-            case 5:
-                dataBits = QSerialPort::Data5;
-                break;
-            case 6:
-                dataBits = QSerialPort::Data6;
-                break;
-            case 7:
-            dataBits = QSerialPort::Data7;
-            break;
-            case 8:
-                dataBits = QSerialPort::Data8;
-                break;
-            default:
-                qCritical("BUG: undefined serial databits.");
-                break;
-            }
-            port->setDataBits(dataBits);
-
-            QSerialPort::Parity parity = QSerialPort::NoParity;
-            switch (ui->comboParity->currentData().toInt()) {
-            case 0:
-                parity = QSerialPort::NoParity;
-                break;
-            case 2:
-                parity = QSerialPort::EvenParity;
-                break;
-            case 3:
-                parity = QSerialPort::OddParity;
-                break;
-            case 4:
-                parity = QSerialPort::SpaceParity;
-                break;
-            case 5:
-                parity = QSerialPort::MarkParity;
-                break;
-            default:
-                qCritical("BUG: undefined serial parity.");
-                break;
-            }
-            port->setParity(parity);
-
-            QSerialPort::StopBits stopBits = QSerialPort::OneStop;
-            switch (ui->comboStopBits->currentData().toInt()) {
-            case 1:
-                stopBits = QSerialPort::OneStop;
-                break;
-            case 2:
-                stopBits = QSerialPort::TwoStop;
-                break;
-            case 3:
-                stopBits = QSerialPort::OneAndHalfStop;
-                break;
-            default:
-                qCritical("BUG: undefined serial stopits.");
-                break;
-            }
-            port->setStopBits(stopBits);
-
-            QSerialPort::FlowControl flowControl = QSerialPort::NoFlowControl;
-            switch (ui->comboFlowControl->currentData().toInt()) {
-            case 0:
-                flowControl = QSerialPort::NoFlowControl;
-                break;
-            case 1:
-                flowControl = QSerialPort::HardwareControl;
-                break;
-            case 2:
-                flowControl = QSerialPort::SoftwareControl;
-                break;
-            default:
-                qCritical("BUG: undefined serial Flow Control Type.");
-                break;
-            }
-            port->setFlowControl(flowControl);
-
-            if (!port->open(QIODevice::ReadWrite)) {
-                QMessageBox::warning(this, tr("Serial open Failed"), tr("Port open Failed"));
-                return;
-            }
-            ui->buttonOpen->setText(tr("Close"));
-
-            decoder->setConnection(port);
-            tabAdvanced->setAllowRunning(true);
-            currentConnection = port;
+    if (port->isOpen()) {
+        port->close();
+        ui->buttonOpen->setText(tr("Open"));
+        tabAdvanced->setAllowRunning(false);
+    } else {
+        port->setPortName(ui->comboPorts->currentText());
+        bool ok;
+        qint32 baudrate = ui->comboBaudrate->currentText().toInt(&ok);
+        if (ok)
+            port->setBaudRate(baudrate);
+        else {
+            QMessageBox::warning(this, tr("Error"), tr("Baudrate parse failed"));
+            return;
         }
+
+        QSerialPort::DataBits dataBits = QSerialPort::Data8;
+        switch(ui->comboDataBits->currentData().toInt()) {
+        case 5:
+            dataBits = QSerialPort::Data5;
+            break;
+        case 6:
+            dataBits = QSerialPort::Data6;
+            break;
+        case 7:
+            dataBits = QSerialPort::Data7;
+        break;
+        case 8:
+            dataBits = QSerialPort::Data8;
+            break;
+        default:
+            qCritical("BUG: undefined serial databits.");
+            break;
+        }
+        port->setDataBits(dataBits);
+
+        QSerialPort::Parity parity = QSerialPort::NoParity;
+        switch (ui->comboParity->currentData().toInt()) {
+        case 0:
+            parity = QSerialPort::NoParity;
+            break;
+        case 2:
+            parity = QSerialPort::EvenParity;
+            break;
+        case 3:
+            parity = QSerialPort::OddParity;
+            break;
+        case 4:
+            parity = QSerialPort::SpaceParity;
+            break;
+        case 5:
+            parity = QSerialPort::MarkParity;
+            break;
+        default:
+            qCritical("BUG: undefined serial parity.");
+            break;
+        }
+        port->setParity(parity);
+
+        QSerialPort::StopBits stopBits = QSerialPort::OneStop;
+        switch (ui->comboStopBits->currentData().toInt()) {
+        case 1:
+            stopBits = QSerialPort::OneStop;
+            break;
+        case 2:
+            stopBits = QSerialPort::TwoStop;
+            break;
+        case 3:
+            stopBits = QSerialPort::OneAndHalfStop;
+            break;
+        default:
+            qCritical("BUG: undefined serial stopits.");
+            break;
+        }
+        port->setStopBits(stopBits);
+
+        QSerialPort::FlowControl flowControl = QSerialPort::NoFlowControl;
+        switch (ui->comboFlowControl->currentData().toInt()) {
+        case 0:
+            flowControl = QSerialPort::NoFlowControl;
+            break;
+        case 1:
+            flowControl = QSerialPort::HardwareControl;
+            break;
+        case 2:
+            flowControl = QSerialPort::SoftwareControl;
+            break;
+        default:
+            qCritical("BUG: undefined serial Flow Control Type.");
+            break;
+        }
+        port->setFlowControl(flowControl);
+
+        if (!port->open(QIODevice::ReadWrite)) {
+            QMessageBox::warning(this, tr("Serial open Failed"), tr("Port open Failed"));
+            return;
+        }
+        ui->buttonOpen->setText(tr("Close"));
+
+        decoder->setConnection(port);
+        tabAdvanced->setAllowRunning(true);
+        currentConnection = port;
     }
 }
 
@@ -274,20 +276,18 @@ void MainWindow::onLoadPluginTriggered()
         type);
     if (fileName.isEmpty())
         return;
-    else {
-        QPluginLoader loader(fileName);
-        QObject *pluginObject = loader.instance();
-        if (pluginObject) {
-            TabPluginInterface *plugin = qobject_cast<TabPluginInterface *>(pluginObject);
-            plugin->setConnection(currentConnection);
-            listPlugins.append(plugin);
-            QWidget *widget = new QWidget();
-            widget->setLayout(plugin->getLayout());
-            ui->tabMain->addTab(widget, plugin->getName());
-            ui->tabMain->setCurrentIndex(ui->tabMain->count() - 1);
-        } else
-            QMessageBox::warning(this, tr("error"), tr("plugin read error"));
-    }
+    QPluginLoader loader(fileName);
+    QObject *pluginObject = loader.instance();
+    if (pluginObject) {
+        TabPluginInterface *plugin = qobject_cast<TabPluginInterface *>(pluginObject);
+        plugin->setConnection(currentConnection);
+        listPlugins.append(plugin);
+        QWidget *widget = new QWidget();
+        widget->setLayout(plugin->getLayout());
+        ui->tabMain->addTab(widget, plugin->getName());
+        ui->tabMain->setCurrentIndex(ui->tabMain->count() - 1);
+    } else
+        QMessageBox::warning(this, tr("error"), tr("plugin read error"));
 }
 
 void MainWindow::onDecodedDataReady(int id, QList<double> listValues)
@@ -301,9 +301,7 @@ void MainWindow::translateTo(QString locale)
 {
     QString qmPath = qApp->applicationDirPath().append("/languages/Serial-Amigo_");
     if(translator->load(qmPath.append(locale).append(".qm")))
-    {
         qApp->installTranslator(translator);
-    }
 }
 
 void MainWindow::retranslateUi()
