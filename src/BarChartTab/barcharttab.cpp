@@ -28,7 +28,7 @@ BarChart::BarChart(QWidget *parent)
     positive->setTickCount(6);
     positive->setLabelFormat("%d");
     real = new QValueAxis();
-    real->setRange(-1000, 1000);
+    real->setRange(-4000, 4000);
     real->setTickCount(13);
     real->setLabelFormat("%d");
 
@@ -153,8 +153,9 @@ void BarChart::onSerialDataReceived(const QByteArray& packet)
         static const auto axisMap = QMap<QChar, int>{{X_HEADER, X}, {Y_HEADER, Y}},
                           dataMap = QMap<QChar, int>{{DATA_SUBHEADER, D}, {I_SUBHEADER, I}, {Q_SUBHEADER, Q}};
 
-        const int idx = data[0] - 3;
+        const int idx = data[0];
         auto series = this->barSeries[u = axisMap[u]][v = dataMap[v]];
+        newestPacketPack[v] = data;
 
         //get and remove old set
         auto set = series->barSets()[0];
@@ -255,4 +256,64 @@ void BarChart::reattachAxis(int i, int j)
     barSeries[i][j]->attachAxis(j == 0 ? positive : real);
     lineSeries[X]->attachAxis(bin[i]);
     lineSeries[X]->attachAxis(j == 0 ? positive : real);
+}
+
+void BarChart::keyPressEvent(QKeyEvent* event)
+{
+    //QString nextText, currentText;
+    QPainter painter(this);
+
+    if(event->key() == Qt::Key_S)
+    {
+        QString baseFilename(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                             "/QSerial Socket Amigo/data/barchart_%1");
+        baseFilename = baseFilename.arg(QTime().currentTime().toString().replace(':', '_'));
+        baseFilename = QFileInfo(baseFilename).absoluteFilePath();
+
+        auto g = chart->geometry();
+        auto screenshot = chartView->grab(QRect(g.left() + g.width() * 2 / 3, g.top() + g.height() / 2, g.width() / 3, g.height() / 2));
+        if(!screenshot.save(baseFilename + ".png"))
+        {
+            goto error;
+        }
+
+        QFile txt(baseFilename + ".txt");
+        if(!txt.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            goto error;
+        }
+
+        QTextStream strm(&txt);
+        auto printPacket = [&strm](QVector<int16_t> packet){
+            bool first = true;
+            int prevLength = 0;
+            for(const auto elem : packet)
+            {
+                if(!first)
+                {
+                    strm << QString(7 - prevLength, ' ');
+                }
+                auto str = QString::number(elem);
+                prevLength = str.length();
+                strm << str;
+                first = false;
+            }
+        };
+        strm << "D:\t";
+        printPacket(newestPacketPack[D]);
+        strm << "\nI:\t";
+        printPacket(newestPacketPack[I]);
+        strm << "\nQ:\t";
+        printPacket(newestPacketPack[Q]);
+        txt.close();
+
+        QMessageBox(QMessageBox::Information, "提示", "保存成功", QMessageBox::Ok).exec();
+    }
+
+    update();
+    QWidget::keyPressEvent(event);
+    return;
+
+error:
+    QMessageBox(QMessageBox::Warning, "提示", "保存失败", QMessageBox::Ok).exec();
 }

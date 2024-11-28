@@ -38,6 +38,9 @@ class BarChart : public QWidget
 public:
     explicit BarChart(QWidget *parent = nullptr);
 
+protected:
+    void keyPressEvent(QKeyEvent* event) override;
+
 private:
     void reattachAxis(int i, int j);
 
@@ -50,10 +53,9 @@ private:
     QBarSeries* barSeries[2][3];
     QValueAxis* positive, * real, * bin[2];
 
-    QVector<int16_t> avg[2];
+    QVector<int16_t> avg[2], newestPacketPack[3];
     QVector<QPair<State, QVector<int16_t>>> valid;
     QQueue<QVector<int16_t>> base[2];
-    QString prev;
 
 signals:
 
